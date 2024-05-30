@@ -16,7 +16,7 @@ export async function UpdateUserPlaces(places) {
   const resData = await res.json();
 
   if (!res.ok) {
-    throw new Error("Failed to fetch user places");
+    throw new Error("Failed to update user places");
   }
 
   return resData.message;
