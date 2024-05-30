@@ -1,11 +1,11 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
 import Places from "./components/Places.jsx";
 import Modal from "./components/Modal.jsx";
 import DeleteConfirmation from "./components/DeleteConfirmation.jsx";
 import logoImg from "./assets/logo.png";
 import AvailablePlaces from "./components/AvailablePlaces.jsx";
-import { UpdateUserPlaces } from "./http.js";
+import { UpdateUserPlaces, fetchUserPlaces } from "./http.js";
 import Error from "./components/Error.jsx";
 
 function App() {
@@ -16,6 +16,25 @@ function App() {
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
   const [errorAddingUserPlaces, setErrorAddingUserPlaces] = useState();
+
+  useEffect(() => {
+    async function fetchData() {
+      // setIsFetching(true);
+      try {
+        const places = await fetchUserPlaces();
+
+        setUserPlaces(places);
+      } catch (error) {
+        setError({
+          message:
+            error.message || "Could not fetch user places, please try again later",
+        });
+      }
+      // setIsFetching(false);
+    }
+
+    fetchData();
+  }, []);
 
   function handleStartRemovePlace(place) {
     setModalIsOpen(true);
@@ -35,14 +54,14 @@ function App() {
         return prevPickedPlaces;
       }
       return [selectedPlace, ...prevPickedPlaces];
-    });
+    }); // optimistic updating means updating the state first then sending the request
 
     try {
       await UpdateUserPlaces([selectedPlace, ...userPlaces]);
     } catch (error) {
       setUserPlaces(userPlaces);
       setErrorAddingUserPlaces({
-        message: error.message || "Failed to update places.",
+        message: error.message || "Failed to update place.",
       });
     }
   }
@@ -52,8 +71,19 @@ function App() {
       prevPickedPlaces.filter((place) => place.id !== selectedPlace.current.id)
     );
 
+    try {
+      await UpdateUserPlaces(
+        userPlaces.filter((place) => place.id !== selectedPlace.current.id)
+      );
+    } catch (error) {
+      setUserPlaces(userPlaces);
+      setErrorAddingUserPlaces({
+        message: error.message || "Failed to delete place.",
+      });
+    }
+
     setModalIsOpen(false);
-  }, []);
+  }, [userPlaces]);
 
   function handleError() {
     setErrorAddingUserPlaces(null);
