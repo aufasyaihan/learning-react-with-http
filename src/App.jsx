@@ -17,9 +17,12 @@ function App() {
 
   const [errorAddingUserPlaces, setErrorAddingUserPlaces] = useState();
 
+  const [isFetching, setIsFetching] = useState(false);
+  const [error, setError] = useState();
+
   useEffect(() => {
     async function fetchData() {
-      // setIsFetching(true);
+      setIsFetching(true);
       try {
         const places = await fetchUserPlaces();
 
@@ -27,10 +30,11 @@ function App() {
       } catch (error) {
         setError({
           message:
-            error.message || "Could not fetch user places, please try again later",
+            error.message ||
+            "Could not fetch user places, please try again later",
         });
       }
-      // setIsFetching(false);
+      setIsFetching(false);
     }
 
     fetchData();
@@ -66,27 +70,36 @@ function App() {
     }
   }
 
-  const handleRemovePlace = useCallback(async function handleRemovePlace() {
-    setUserPlaces((prevPickedPlaces) =>
-      prevPickedPlaces.filter((place) => place.id !== selectedPlace.current.id)
-    );
-
-    try {
-      await UpdateUserPlaces(
-        userPlaces.filter((place) => place.id !== selectedPlace.current.id)
+  const handleRemovePlace = useCallback(
+    async function handleRemovePlace() {
+      setUserPlaces((prevPickedPlaces) =>
+        prevPickedPlaces.filter(
+          (place) => place.id !== selectedPlace.current.id
+        )
       );
-    } catch (error) {
-      setUserPlaces(userPlaces);
-      setErrorAddingUserPlaces({
-        message: error.message || "Failed to delete place.",
-      });
-    }
 
-    setModalIsOpen(false);
-  }, [userPlaces]);
+      try {
+        await UpdateUserPlaces(
+          userPlaces.filter((place) => place.id !== selectedPlace.current.id)
+        );
+      } catch (error) {
+        setUserPlaces(userPlaces);
+        setErrorAddingUserPlaces({
+          message: error.message || "Failed to delete place.",
+        });
+      }
+
+      setModalIsOpen(false);
+    },
+    [userPlaces]
+  );
 
   function handleError() {
     setErrorAddingUserPlaces(null);
+  }
+  let errorMsg;
+  if (error) {
+    errorMsg = <Error title="An error occured" message={error.message} />;
   }
 
   return (
@@ -117,12 +130,18 @@ function App() {
         </p>
       </header>
       <main>
-        <Places
-          title="I'd like to visit ..."
-          fallbackText="Select the places you would like to visit below."
-          places={userPlaces}
-          onSelectPlace={handleStartRemovePlace}
-        />
+        {error ? (
+          errorMsg
+        ) : (
+          <Places
+            title="I'd like to visit ..."
+            isLoading={isFetching}
+            loadingText={"Fetching user places..."}
+            fallbackText="Select the places you would like to visit below."
+            places={userPlaces}
+            onSelectPlace={handleStartRemovePlace}
+          />
+        )}
 
         <AvailablePlaces onSelectPlace={handleSelectPlace} />
       </main>
