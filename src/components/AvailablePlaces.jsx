@@ -2,6 +2,7 @@ import { useState } from "react";
 import Places from "./Places.jsx";
 import { useEffect } from "react";
 import Error from "./Error.jsx";
+import { sortPlacesByDistance } from "../loc.js";
 
 export default function AvailablePlaces({ onSelectPlace }) {
   const [isFetching, setIsFetching] = useState(false);
@@ -18,19 +19,28 @@ export default function AvailablePlaces({ onSelectPlace }) {
     async function fetchData() {
       setIsFetching(true);
       try {
-        const res = await fetch("http://localhost:3000/placessss");
+        const res = await fetch("http://localhost:3000/places");
         const resData = await res.json();
         if (!res.ok) {
           throw new Error("Failed to fetch places");
         }
-        setAvailablePlaces(resData.places);
+
+        navigator.geolocation.getCurrentPosition((position) => {
+          const currentLocation = sortPlacesByDistance(
+            resData.places,
+            position.coords.latitude,
+            position.coords.longitude
+          );
+          setAvailablePlaces(currentLocation);
+          setIsFetching(false);
+        });
       } catch (error) {
         setError({
           message:
             error.message || "Could not fetch places, please try again later",
         });
+        setIsFetching(false);
       }
-      setIsFetching(false);
     }
 
     fetchData();
